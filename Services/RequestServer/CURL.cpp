@@ -5,11 +5,13 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#include <AK/ByteString.h>
 #include <AK/Enumerate.h>
 #include <AK/Format.h>
 #include <RequestServer/AIA.h>
 #include <RequestServer/CURL.h>
 #include <RequestServer/Resolver.h>
+#include <openssl/crypto.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
@@ -87,11 +89,36 @@ static int verify_server_certificate_has_subject_alt_name(int preverify_ok, X509
 
 CURLcode configure_ssl_context(CURL*, [[maybe_unused]] void* ssl_context, [[maybe_unused]] void* aia_collector)
 {
+<<<<<<< HEAD
     // Everything below casts ssl_context to an SSL_CTX, which only holds when curl is built against OpenSSL.
     [[maybe_unused]] static auto const curl_uses_openssl = [] {
+=======
+    // Those callbacks change curl's SSL_CTX through the OpenSSL we link, which only holds when curl uses that same
+    // OpenSSL. A system curl can load another one, for instance once the system has moved on to a newer OpenSSL than
+    // the one Ladybird was built against. Both are then loaded, and the structures of one handed to the other corrupt
+    // memory, so leave curl's SSL_CTX alone in that case.
+    static auto const uses_openssl = [] {
+>>>>>>> 1fc90e04 (RequestServer: Leave curl's SSL_CTX alone when it uses another OpenSSL)
         auto const* version_info = curl_version_info(CURLVERSION_NOW);
         VERIFY(version_info);
-        return version_info->ssl_version && StringView { version_info->ssl_version, strlen(version_info->ssl_version) }.starts_with("OpenSSL/"sv);
+        if (!version_info->ssl_version)
+            return false;
+
+        // curl names its active TLS backend first, as in "OpenSSL/3.5.1" or "OpenSSL/3.5.1 (GnuTLS/3.8.9)".
+        auto curl_openssl_version = StringView { version_info->ssl_version, strlen(version_info->ssl_version) };
+        if (!curl_openssl_version.starts_with("OpenSSL/"sv))
+            return false;
+        curl_openssl_version = curl_openssl_version.substring_view("OpenSSL/"sv.length());
+        if (auto end = curl_openssl_version.find(' '); end.has_value())
+            curl_openssl_version = curl_openssl_version.substring_view(0, *end);
+
+        auto our_openssl_version = ByteString::formatted("{}.{}.{}", OPENSSL_version_major(), OPENSSL_version_minor(), OPENSSL_version_patch());
+        if (curl_openssl_version != our_openssl_version) {
+            warnln("RequestServer: curl uses OpenSSL {}, but Ladybird uses OpenSSL {}. Ladybird has to be rebuilt against the OpenSSL that curl uses, until then it leaves curl's TLS configuration as it is.",
+                curl_openssl_version, our_openssl_version);
+            return false;
+        }
+        return true;
     }();
 
 #if defined(SSL_OP_IGNORE_UNEXPECTED_EOF)
