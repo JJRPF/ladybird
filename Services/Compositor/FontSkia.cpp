@@ -145,10 +145,12 @@ sk_sp<SkTypeface> make_skia_typeface(Gfx::Typeface const& typeface)
     if (auto skia_typeface = make_platform_skia_typeface(data, typeface))
         return skia_typeface;
 
+#ifndef AK_OS_ANDROID
     // FreeType also loads some data that the font manager of the platform does not.
     static NeverDestroyed<sk_sp<SkFontMgr>> font_manager { SkFontMgr_New_Custom_Empty() };
     if (auto skia_typeface = (*font_manager)->makeFromStream(std::make_unique<SkMemoryStream>(data), SkFontArguments {}.setCollectionIndex(static_cast<int>(typeface.collection_index()))))
         return skia_typeface;
+#endif
 
     dbgln("Compositor: Skia does not load the typeface of family '{}'", typeface.family());
     return nullptr;

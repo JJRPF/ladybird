@@ -20,7 +20,7 @@
 #include <MediaServer/ConnectionFromClient.h>
 #include <MediaServer/Sandbox.h>
 
-#if defined(AK_OS_LINUX)
+#if defined(AK_OS_LINUX) && !defined(AK_OS_ANDROID)
 #    include <LibMediaCodecs/FFmpeg/SystemFFmpeg.h>
 #endif
 
@@ -61,7 +61,7 @@ ErrorOr<int> ladybird_main(Main::Arguments arguments)
 
     auto& event_loop = Core::EventLoop::initialize_for_current_thread();
 
-#if defined(AK_OS_LINUX)
+#if defined(AK_OS_LINUX) && !defined(AK_OS_ANDROID)
     // The system library's dependencies make syscalls the sandbox will not allow, so it loads first.
     Media::FFmpeg::SystemFFmpeg::load();
 #endif

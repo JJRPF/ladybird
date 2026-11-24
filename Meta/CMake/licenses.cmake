@@ -57,10 +57,14 @@ add_custom_command(
 
 # about:licenses decompresses the file itself, and falls back to the uncompressed one.
 set(brotli_hints "")
-if (NOT "${VCPKG_INSTALLED_DIR}" STREQUAL "" AND NOT "${VCPKG_TARGET_TRIPLET}" STREQUAL "")
-    list(APPEND brotli_hints "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/brotli")
+if (NOT CMAKE_CROSSCOMPILING)
+    if (NOT "${VCPKG_INSTALLED_DIR}" STREQUAL "" AND NOT "${VCPKG_TARGET_TRIPLET}" STREQUAL "")
+        list(APPEND brotli_hints "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/brotli")
+    endif()
+    find_program(BROTLI_EXECUTABLE brotli HINTS ${brotli_hints})
+else()
+    set(BROTLI_EXECUTABLE "")
 endif()
-find_program(BROTLI_EXECUTABLE brotli HINTS ${brotli_hints})
 
 if (BROTLI_EXECUTABLE)
     set(LADYBIRD_LICENSES_FILE "${licenses_text_file}.br")

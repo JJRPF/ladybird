@@ -15,10 +15,25 @@ if (NOT RUSTC_WRAPPER)
 endif()
 
 if (NOT DEFINED CACHE{RUST_TARGET_TRIPLE})
-    execute_process(COMMAND "${RUST_RUSTC}" -vV OUTPUT_VARIABLE rustc_verbose)
-    string(REGEX MATCH "host: ([^\n]+)" _ "${rustc_verbose}")
-    string(STRIP "${CMAKE_MATCH_1}" host_triple)
-    set(RUST_TARGET_TRIPLE "${host_triple}" CACHE INTERNAL "Rust target triple")
+    if (ANDROID)
+        if (ANDROID_ABI STREQUAL "arm64-v8a")
+            set(android_rust_triple "aarch64-linux-android")
+        elseif (ANDROID_ABI STREQUAL "x86_64")
+            set(android_rust_triple "x86_64-linux-android")
+        elseif (ANDROID_ABI STREQUAL "armeabi-v7a")
+            set(android_rust_triple "armv7-linux-androideabi")
+        elseif (ANDROID_ABI STREQUAL "x86")
+            set(android_rust_triple "i686-linux-android")
+        else()
+            message(FATAL_ERROR "Unsupported ANDROID_ABI for Rust: ${ANDROID_ABI}")
+        endif()
+        set(RUST_TARGET_TRIPLE "${android_rust_triple}" CACHE INTERNAL "Rust target triple")
+    else()
+        execute_process(COMMAND "${RUST_RUSTC}" -vV OUTPUT_VARIABLE rustc_verbose)
+        string(REGEX MATCH "host: ([^\n]+)" _ "${rustc_verbose}")
+        string(STRIP "${CMAKE_MATCH_1}" host_triple)
+        set(RUST_TARGET_TRIPLE "${host_triple}" CACHE INTERNAL "Rust target triple")
+    endif()
 endif()
 
 # Compiler flags shared by Rust libraries, binaries, and tests.
@@ -380,10 +395,28 @@ function(_rust_crate_common_setup)
     endif()
     set(cargo_output_dir "${cargo_target_dir}/${RUST_TARGET_TRIPLE}/${cargo_profile_dir}")
 
+    set(rust_c_compiler "${CMAKE_C_COMPILER}")
+    set(rust_cxx_compiler "${CMAKE_CXX_COMPILER}")
+    if (ANDROID AND DEFINED ANDROID_TOOLCHAIN_ROOT AND DEFINED ANDROID_PLATFORM_LEVEL)
+        if (ANDROID_ABI STREQUAL "armeabi-v7a")
+            set(android_ndk_clang_prefix "armv7a-linux-androideabi")
+        else()
+            set(android_ndk_clang_prefix "${RUST_TARGET_TRIPLE}")
+        endif()
+        set(android_clang_wrapper "${ANDROID_TOOLCHAIN_ROOT}/bin/${android_ndk_clang_prefix}${ANDROID_PLATFORM_LEVEL}-clang")
+        set(android_clangxx_wrapper "${ANDROID_TOOLCHAIN_ROOT}/bin/${android_ndk_clang_prefix}${ANDROID_PLATFORM_LEVEL}-clang++")
+        if (EXISTS "${android_clang_wrapper}")
+            set(rust_c_compiler "${android_clang_wrapper}")
+        endif()
+        if (EXISTS "${android_clangxx_wrapper}")
+            set(rust_cxx_compiler "${android_clangxx_wrapper}")
+        endif()
+    endif()
+
     # Build environment variables for cargo.
     set(cargo_env
-        "CC_${target_underscore}=${CMAKE_C_COMPILER}"
-        "CXX_${target_underscore}=${CMAKE_CXX_COMPILER}"
+        "CC_${target_underscore}=${rust_c_compiler}"
+        "CXX_${target_underscore}=${rust_cxx_compiler}"
         "CARGO_BUILD_RUSTC=${RUST_RUSTC}"
     )
 
@@ -421,7 +454,7 @@ function(_rust_crate_common_setup)
     # compiler driver like clang-cl.
     if (NOT WIN32)
         list(APPEND cargo_env
-            "CARGO_TARGET_${target_upper}_LINKER=${CMAKE_C_COMPILER}"
+            "CARGO_TARGET_${target_upper}_LINKER=${rust_c_compiler}"
             "AR_${target_underscore}=${CMAKE_AR}"
         )
     endif()

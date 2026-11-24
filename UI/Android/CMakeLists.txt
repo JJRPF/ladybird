@@ -7,6 +7,7 @@ add_library(ladybird SHARED
     src/main/cpp/JNIHelpers.cpp
 )
 target_link_libraries(ladybird PRIVATE LibFileSystem jnigraphics android)
+target_link_options(ladybird PRIVATE LINKER:--allow-multiple-definition)
 
 include(../cmake/AndroidExtras.cmake)
 create_ladybird_bundle(ladybird)

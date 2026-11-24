@@ -117,7 +117,7 @@ if (APPLE)
         StringConversionsMacOS.mm
     )
     set_source_files_properties(MediaSessionPlatformBackendMacOS.mm NotificationBackendMacOS.mm QuarantineMacOS.mm StringConversionsMacOS.mm PROPERTIES COMPILE_FLAGS "-fobjc-arc")
-elseif (LINUX)
+elseif (LINUX OR ANDROID)
     list(APPEND SOURCES AudioDaemonSocket.cpp CrashReportPOSIX.cpp)
 endif()
 

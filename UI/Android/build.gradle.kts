@@ -6,8 +6,7 @@ plugins {
 android {
     namespace = "org.serenityos.ladybird"
     compileSdk = 35
-    // FIXME: Replace the NDK version to a stable one (this is r29 beta 2)
-    ndkVersion = "29.0.13599879"
+    ndkVersion = "29.0.14206865"
 
     defaultConfig {
         applicationId = "org.serenityos.ladybird"
@@ -30,13 +29,31 @@ android {
         ndk {
             // Specifies the ABI configurations of your native
             // libraries Gradle should build and package with your app.
-            abiFilters += listOf("x86_64", "arm64-v8a")
+            val configuredAbis = providers.gradleProperty("ladybird.abis")
+                .orNull
+                ?.split(",")
+                ?.map { it.trim() }
+                ?.filter { it.isNotEmpty() }
+            abiFilters += (configuredAbis ?: listOf("arm64-v8a", "x86_64"))
+        }
+    }
+
+    signingConfigs {
+        val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+        if (!keystorePath.isNullOrBlank()) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

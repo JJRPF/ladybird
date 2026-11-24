@@ -220,7 +220,7 @@ mod fault {
     static mut PREVIOUS_SIGSEGV: libc::sigaction = unsafe { std::mem::zeroed() };
     static mut PREVIOUS_SIGBUS: libc::sigaction = unsafe { std::mem::zeroed() };
 
-    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    #[cfg(all(any(target_os = "linux", target_os = "android"), target_arch = "x86_64"))]
     unsafe fn instruction_pointer(context: *mut libc::c_void) -> *mut usize {
         unsafe {
             let context = context.cast::<libc::ucontext_t>();
@@ -228,7 +228,7 @@ mod fault {
         }
     }
 
-    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+    #[cfg(all(any(target_os = "linux", target_os = "android"), target_arch = "aarch64"))]
     unsafe fn instruction_pointer(context: *mut libc::c_void) -> *mut usize {
         unsafe {
             let context = context.cast::<libc::ucontext_t>();

@@ -683,6 +683,7 @@ mod native {
 
     /// The code the process's stores share.
     pub struct Stubs {
+        #[allow(dead_code)]
         pub trap_exit: u64,
         pub entry: u64,
         /// Where the entry trampoline's call of compiled code returns to.

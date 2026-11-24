@@ -29,6 +29,7 @@ if (ANDROID)
         ${SOURCES}
     )
     target_link_libraries(webcontentservice PRIVATE android LibWebView)
+    target_link_options(webcontentservice PRIVATE LINKER:--allow-multiple-definition)
 else()
     add_library(webcontentservice STATIC ${SOURCES})
     set_target_properties(webcontentservice PROPERTIES AUTOMOC OFF AUTORCC OFF AUTOUIC OFF)

@@ -31,7 +31,7 @@ endif()
 target_include_directories(imagedecoderservice PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/../..)
 target_include_directories(imagedecoderservice PRIVATE ${LADYBIRD_SOURCE_DIR}/Services/)
 
-target_link_libraries(ImageDecoder PRIVATE imagedecoderservice LibCore LibMain LibSandbox LibThreading)
+target_link_libraries(ImageDecoder PRIVATE imagedecoderservice LibCore LibIPC LibMain LibSandbox LibThreading)
 target_link_libraries(imagedecoderservice PRIVATE LibCore LibGfx LibImageDecoders LibIPC LibImageDecoderClient LibMain LibThreading)
 
 if (WIN32)

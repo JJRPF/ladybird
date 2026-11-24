@@ -21,10 +21,6 @@ public:
     virtual Gfx::IntPoint to_widget_position(Gfx::IntPoint p) const override { return p; }
     virtual void update_zoom() override { }
 
-    NonnullRefPtr<WebView::WebContentClient> bind_web_content_client();
-
-    virtual void initialize_client(CreateNewClient) override;
-
     void paint_into_bitmap(void* android_bitmap_raw, AndroidBitmapInfo const& info);
 
     void set_viewport_geometry(int w, int h);

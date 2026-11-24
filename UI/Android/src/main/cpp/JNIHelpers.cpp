@@ -5,14 +5,24 @@
  */
 
 #include "JNIHelpers.h"
-#include <AK/Utf16View.h>
+#include <AK/Vector.h>
 
 namespace Ladybird {
 
 jstring JavaEnvironment::jstring_from_ak_string(String const& str)
 {
-    auto as_utf16 = MUST(AK::utf8_to_utf16(str.code_points()));
-    return m_env->NewString(reinterpret_cast<jchar const*>(as_utf16.data.data()), as_utf16.data.size());
+    Vector<jchar> utf16;
+    utf16.ensure_capacity(str.bytes().size());
+    for (auto code_point : str.code_points()) {
+        if (code_point <= 0xFFFF) {
+            utf16.append(static_cast<jchar>(code_point));
+        } else {
+            u32 adjusted = code_point - 0x10000;
+            utf16.append(static_cast<jchar>(0xD800 + (adjusted >> 10)));
+            utf16.append(static_cast<jchar>(0xDC00 + (adjusted & 0x3FF)));
+        }
+    }
+    return m_env->NewString(utf16.data(), static_cast<jsize>(utf16.size()));
 }
 
 }

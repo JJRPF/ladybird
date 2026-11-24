@@ -13,7 +13,6 @@
 #include <LibCore/System.h>
 #include <LibIPC/ConnectionFromClient.h>
 #include <LibImageDecoderClient/Client.h>
-#include <LibMedia/Audio/Loader.h>
 #include <LibRequests/RequestClient.h>
 #include <LibWeb/Bindings/MainThreadVM.h>
 #include <LibWeb/Fetch/Fetching/FetchEngine.h>
@@ -24,7 +23,6 @@
 #include <LibWeb/Platform/EventLoopPlugin.h>
 #include <LibWeb/Platform/FontPlugin.h>
 #include <LibWeb/Platform/RemoteImageCodecPlugin.h>
-#include <LibWebView/HelperProcess.h>
 #include <LibWebView/Utilities.h>
 #include <WebContent/ConnectionFromClient.h>
 #include <WebContent/PageHost.h>
@@ -61,7 +59,7 @@ ErrorOr<int> service_main(int ipc_socket)
     Web::Platform::FontPlugin::install(*new Web::Platform::FontPlugin(is_test_mode));
 
     auto webcontent_socket = TRY(Core::LocalSocket::adopt_fd(ipc_socket));
-    auto webcontent_client = TRY(WebContent::ConnectionFromClient::try_create(make<IPC::Transport>(move(webcontent_socket))));
+    auto webcontent_client = WebContent::ConnectionFromClient::construct(make<IPC::Transport>(move(webcontent_socket)), is_test_mode);
 
     return event_loop.exec();
 }

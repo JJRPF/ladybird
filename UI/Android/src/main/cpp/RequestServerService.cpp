@@ -16,23 +16,34 @@
 #include <LibIPC/SingleServer.h>
 #include <LibTLS/TLSv12.h>
 #include <LibWebView/Utilities.h>
+#include <RequestServer/CURL.h>
 #include <RequestServer/ConnectionFromClient.h>
+#include <RequestServer/Resolver.h>
+#include <RequestServer/ResourceSubstitutionMap.h>
 
 namespace RequestServer {
 
-extern ByteString g_default_certificate_path;
+OwnPtr<ResourceSubstitutionMap> g_resource_substitution_map;
 
 }
 
 ErrorOr<int> service_main(int ipc_socket)
 {
-
-    RequestServer::g_default_certificate_path = ByteString::formatted("{}/cacert.pem", WebView::s_ladybird_resource_root);
+    RequestServer::set_default_certificate_path(ByteString::formatted("{}/cacert.pem", WebView::s_ladybird_resource_root));
 
     auto& event_loop = Core::EventLoop::initialize_for_current_thread();
 
+    RequestServer::ConnectionFromClient::ConnectionMap connections;
+    RequestServer::ConnectionFromClient::RequestTransferLeaseMap request_transfer_leases;
+
     auto socket = TRY(Core::LocalSocket::adopt_fd(ipc_socket));
-    auto client = TRY(RequestServer::ConnectionFromClient::try_create(make<IPC::Transport>(move(socket))));
+    auto client = RequestServer::ConnectionFromClient::construct(
+        make<IPC::Transport>(move(socket)),
+        RequestServer::IsPrivate::No,
+        RequestServer::SiteBinding {},
+        connections,
+        request_transfer_leases,
+        Optional<HTTP::DiskCache&> {});
 
     return event_loop.exec();
 }

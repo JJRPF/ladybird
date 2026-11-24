@@ -27,6 +27,11 @@ if(RUNTIME_OPTIONS STREQUAL "")
     message(FATAL_ERROR "At least one of libidn2 and libicu should be selected.")
 endif()
 
+if(VCPKG_CROSSCOMPILING AND NOT DEFINED VCPKG_MESON_NATIVE_FILE)
+    set(VCPKG_MESON_NATIVE_FILE "${CURRENT_BUILDTREES_DIR}/meson-native.ini")
+    file(WRITE "${VCPKG_MESON_NATIVE_FILE}" "[binaries]\nc = 'cc'\ncpp = 'c++'\nar = 'ar'\nstrip = 'strip'\n")
+endif()
+
 vcpkg_configure_meson(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
