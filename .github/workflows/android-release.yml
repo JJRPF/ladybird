@@ -34,17 +34,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  LADYBIRD_SOURCE_DIR: ${{ github.workspace }}
-  LADYBIRD_CACHE_DIR: ${{ github.workspace }}/Build/caches
-  CCACHE_DIR: ${{ github.workspace }}/.ccache
-  GRADLE_OPTS: '-Xmx4096m'
-
 jobs:
   build-android:
     name: Build Android APK (${{ inputs.build_type || 'release' }})
     runs-on: ubuntu-24.04
     timeout-minutes: 180
+    env:
+      LADYBIRD_SOURCE_DIR: ${{ github.workspace }}
+      LADYBIRD_CACHE_DIR: ${{ github.workspace }}/Build/caches
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      GRADLE_OPTS: '-Xmx4096m'
 
     steps:
       - name: Free disk space on runner
@@ -132,12 +131,15 @@ jobs:
         run: ./Meta/ladybird.py vcpkg --preset Release
 
       - name: Decode release keystore (if configured)
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          echo "${ANDROID_KEYSTORE_BASE64}" | base64 -d > "${RUNNER_TEMP}/release.keystore"
-          echo "ANDROID_KEYSTORE_PATH=${RUNNER_TEMP}/release.keystore" >> "$GITHUB_ENV"
+          if [ -n "${ANDROID_KEYSTORE_BASE64}" ]; then
+            echo "${ANDROID_KEYSTORE_BASE64}" | base64 -d > "${RUNNER_TEMP}/release.keystore"
+            echo "ANDROID_KEYSTORE_PATH=${RUNNER_TEMP}/release.keystore" >> "$GITHUB_ENV"
+          else
+            echo "No release keystore configured; Gradle will sign with the debug keystore."
+          fi
 
       - name: Build Android APK
         working-directory: ${{ github.workspace }}/UI/Android
